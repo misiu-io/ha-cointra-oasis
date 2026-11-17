@@ -23,12 +23,13 @@ def load_coordinator():
     for name in (
         "homeassistant", "homeassistant.config_entries", "homeassistant.const",
         "homeassistant.core", "homeassistant.exceptions", "homeassistant.helpers",
-        "homeassistant.helpers.update_coordinator",
+        "homeassistant.helpers.device_registry", "homeassistant.helpers.update_coordinator",
     ):
         sys.modules[name] = ModuleType(name)
 
     sys.modules["homeassistant.config_entries"].ConfigEntry = object
-    sys.modules["homeassistant.const"].CONNECTION_NETWORK_MAC = "mac"
+    # 2026.11 exports this from device_registry, not homeassistant.const.
+    sys.modules["homeassistant.helpers.device_registry"].CONNECTION_NETWORK_MAC = "mac"
     sys.modules["homeassistant.core"].HomeAssistant = object
 
     class FakeAuthFailed(Exception):

@@ -1,7 +1,7 @@
 {
   "domain": "cointra_oasis",
   "name": "Cointra Oasis Tech",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "config_flow": true,
   "documentation": "https://www.cointra.es/aerotermia-acs-oasis-tech/",
   "codeowners": [],

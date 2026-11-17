@@ -1,7 +1,7 @@
 # Cointra Oasis Tech for Home Assistant
 
 Unofficial, **strictly read-only** cloud monitoring for the Cointra Oasis Tech
-200 HT family, using the Ferroli Home / Four Solid API. Version 0.1.0 is a
+200 HT family, using the Ferroli Home / Four Solid API. Version 0.1.1 is a
 private preview and is **not yet published** to the Home Assistant Marketplace.
 
 This project has been built using API responses verified against one Cointra
