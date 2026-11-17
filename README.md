@@ -1,5 +1,7 @@
 # Cointra Oasis Tech
 
+**Español:** [Leer el README en español](README.es.md)
+
 Read-only monitoring of Cointra Oasis Tech aerothermal domestic hot water (DHW) systems in **Home Assistant**, using the same Ferroli cloud service as the **Ferroli Home / Four Solid** mobile app.
 
 This is an unofficial personal project. It is not affiliated, associated, authorised or endorsed by Cointra or Ferroli.
