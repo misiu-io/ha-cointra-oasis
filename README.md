@@ -1,88 +1,74 @@
 # HA Cointra Oasis Tech
 
-**An unofficial, read-only Home Assistant integration for Cointra Oasis Tech heat-pump water heaters.**
+An unofficial, read-only Home Assistant integration for Cointra Oasis Tech aerothermal hot-water systems, using the Ferroli Home / Four Solid cloud API.
 
-This is a small personal project, not a Cointra, Ferroli or Home Assistant product. I am not affiliated with any of them. The integration uses the same cloud account that works with the Ferroli Home / Four Solid mobile app, and it never sends a command to change the heater's settings.
+This is a small personal project and is not affiliated, associated, authorised, endorsed by, or in any way officially connected with Cointra or Ferroli.
+
+The integration uses the same email address and password as your Ferroli Home / Four Solid mobile app account. For now, it is strictly read-only: it does not send commands to change the aerothermal system's settings.
 
 ## Why I made this
 
-I bought a **Cointra Oasis Tech 200 HT** hot-water heat pump for my house in Spain. I like the heater, but it has always frustrated me that I couldn't see its temperatures, current mode and scheduling information in Home Assistant alongside everything else in the house.
+In 2024, I started renovating a very old house in Spain. It quickly became clear that practically everything needed work, including the plumbing and electrics. As part of that renovation, I bought a **Cointra Oasis Tech 200 HT** heat pump for domestic hot water.
 
-I initially looked at the unit's RS-485 / Modbus interface. There is an accessible connection on the controller, but finding a trustworthy register map for this model and firmware has been much harder than expected. I still think local access would be interesting, but I haven't got a verified Modbus implementation to share.
+It has always frustrated me that I couldn't see its temperatures, current operating mode and other parameters in Home Assistant alongside everything else in the house.
 
-Then I looked at the phone app and the cloud API behind it. The Ferroli Home / Four Solid platform appears to serve several related hot-water heaters, including rebadged variants. The Wi-Fi module and cloud interface may therefore be common across more devices than the Cointra model I own. That is promising, but **I have only tested one actual heater** and don't want to pretend compatibility has been established for the others.
+I first investigated the connection on the controller motherboard as a possible route to local monitoring. There are references to Modbus and cascade systems, but I haven't found a reliable register map or confirmed that the available connector provides a conventional RS-485 Modbus interface for direct monitoring. It may be intended for communication between units in a cascade rather than general integration.
 
-I put this integration together so I could get the data into Home Assistant without replacing the manufacturer's controls or upsetting the schedule I already use.
+So I turned to the cloud API used by the mobile app. Related Cointra and Ferroli systems appear to use a common Wi-Fi module and cloud platform, which suggests that the same API may work with other models. This integration uses the API calls behind the Ferroli Home / Four Solid app, but **I have only tested it on my own physical Oasis Tech 200 HT**. I can't confirm compatibility with other models or firmware versions.
 
-## What it reads
+## Supported devices
 
-From the heater's full cloud response, Home Assistant can show:
+Currently tested on the **Cointra Oasis Tech 200 HT**. Other models and firmware versions may work, but I haven't tested them.
 
-| Group | Read-only information |
+## Available entities
+
+The integration currently provides these read-only entities in Home Assistant:
+
+| Type | Entities |
 | --- | --- |
-| Water | Tank top and bottom temperatures, reported water temperature, requested and actual setpoints |
-| Operation | Requested and actual operating modes, requested and actual silent mode |
-| Scheduling | Whether scheduling is enabled, whether the current slot is active, slot start and end |
-| Protection and inputs | Alarm, anti-legionella, antifreeze, photovoltaic, smart-grid and solar-thermal flags |
-| Probes | Coil / defrost and external air temperatures |
-| Diagnostics | Last device communication, data-read status, motherboard, display and Wi-Fi firmware, Wi-Fi MAC |
+| Temperature sensors | Water temperature, Tank top temperature, Tank bottom temperature, Coil / defrost temperature, External air temperature, Requested setpoint, Actual setpoint |
+| Operating mode sensors | Requested mode, Actual mode |
+| Scheduling sensors | Schedule slot start, Schedule slot end |
+| Status binary sensors | Scheduling enabled, Schedule slot active, Anti-legionella running, Photovoltaic active, Smart grid active, Solar thermal active, Antifreeze active, Requested silent mode, Actual silent mode, Alarm |
+| Diagnostic sensors | Last device communication, Wi-Fi firmware, Motherboard firmware, Display firmware, Wi-Fi MAC address |
+| Diagnostic binary sensor | Data read from device |
 
-The serial number and MAC may also appear in Home Assistant's device details. They are not hard-coded into this project. Unsupported probe values (such as `-32768`) appear as unavailable, not as plausible temperatures. An active scheduling slot does **not** necessarily mean the compressor is running.
+On my device, some unsupported probes return values such as `0` or `-32768`. The integration currently ignores `-32768`; zero readings from unsupported probes still need to be handled more carefully.
 
-The device name you chose in the manufacturer's app is retained. Home Assistant identifies the device by its existing unique ID, so updating the integration should not create a second heater or new entity IDs.
+## Setup and polling
 
-## How it works
+You need a valid **Ferroli Home / Four Solid** account with your aerothermal system already registered in the mobile app. During setup, the Home Assistant integration asks for your account email address and password. It then reads the devices registered to your account. If more than one device is found, you choose which one to add. If there is only one, it is selected automatically. The device keeps the name registered in the mobile app, which is also used as its name in Home Assistant.
 
-You need a working **Ferroli Home / Four Solid app account**, with your heater already visible in the phone app. The Home Assistant setup asks for that account's email and password and, if necessary, which heater to monitor. You don't need to discover Modbus registers, alter the heater or run a separate gateway.
+The integration authenticates with the cloud API and makes a full device read every **30 minutes** by default. You can change the polling interval under the integration's **Configure** option.
 
-I use the Home Assistant Marketplace to distribute the GitHub repository. It handles installing the custom integration and showing updates. This README deliberately doesn't duplicate the Marketplace's installation interface.
+## API calls used
 
-The integration asks the cloud for a fresh, short-lived access token, then makes **one full read request every 30 minutes** by default. You can change that to 60 minutes or longer under the integration's **Configure** option. The shorter, partially understood API call used by older preview versions has been removed: it caused missing or default fields to corrupt otherwise valid Home Assistant readings.
+These are the three API calls used by the integration:
 
-If a request fails, Home Assistant marks the current readings unavailable and retains their history. Missing fields are not silently converted into `Off` or alarm states. Rate limits are respected, and repeated failures back off instead of hammering the service. This is cloud polling, so there is no promise of instant state updates or continued operation if the manufacturer's cloud is unavailable.
+| Purpose | Method and endpoint |
+| --- | --- |
+| Login and authentication | `POST /api/User/login` |
+| Find devices registered to the account | `GET /v1/Device/GetUserDevicesWithSlavePlain` |
+| Read the complete device state | `GET /v1/DeviceCommand/{deviceId}/GetAllLastValuesFromDevice` |
 
-## The API I found
+The device discovery call is made during setup. The login and full-state read are used during normal polling. More details on the responses and my API investigation are in [API.md](API.md).
 
-The useful information came from the cloud service's Swagger definitions and requests I checked with Postman. The integration itself currently calls only these endpoints:
+## What I'm not doing yet
 
-| Purpose | Method and endpoint | Used? |
-| --- | --- | --- |
-| Login | `POST /api/User/login` | Yes, once per polling cycle |
-| Discover devices | `GET /v1/Device/GetUserDevicesWithSlavePlain` | Yes, during setup |
-| Complete heater snapshot | `GET /v1/DeviceCommand/{deviceId}/GetAllLastValuesFromDevice` | Yes, every poll |
+**No remote control or writes.** Testing and online research suggest that firmware versions can behave differently, and some attempted control operations can interfere with or disable existing schedules. For now, I'm staying away from anything that changes operating modes, setpoints or scheduling.
 
-The full response includes nested requested/actual modes and a current scheduling slot, plus temperatures, status flags, alarm data and firmware versions. I have documented the relevant JSON names, example shapes, hostnames, and the other endpoints I explored in [API.md](API.md).
+**No energy statistics.** The API appears to expose electricity consumption and energy production information, but I haven't been able to make those requests work consistently. Date formatting and data handling have been particularly difficult to pin down, and there is very little documentation. Until I understand the responses properly, I'm leaving energy figures out. I currently use Shelly devices and other power monitors to measure real-time consumption separately.
 
-Some other Swagger operations look interesting, particularly scheduling details and energy history, but they are **not part of this integration** yet. I do not use any API write command to set temperature, switch modes or change schedules. HTTP `POST` for login is authentication, not a command to the heater.
+**No assumptions about other equipment.** I've tested this on one Cointra Oasis Tech 200 HT. I haven't tested cascade configurations, other models or multiple devices registered under the same account.
 
-## What I am deliberately not doing
+## How you can help
 
-**No heater control.** This integration is for observing the appliance, not changing it. My existing schedules and the manufacturer's phone app remain in charge. There are no switch, button, climate or water-heater control entities, and no code paths that send configuration commands.
+I'd appreciate bug reports and test results from anyone using a related system. Please include the model, the mobile app you're using, the motherboard, display and Wi-Fi firmware versions, and which readings work or fail. Please don't include personal account details, serial numbers or MAC addresses.
 
-**No made-up energy readings.** I can monitor the actual electrical consumption at home with Shelly and other metering equipment, but that is separate from the manufacturer's historical energy figures. I haven't integrated those statistics because I haven't got the cloud request's date handling working reliably.
+You can report issues at [GitHub Issues](https://github.com/misiu-io/ha-cointra-oasis/issues). I'd also be interested in a verified register map for local monitoring, or help understanding the energy statistics API.
 
-**No claim of universal compatibility.** The platform seems to be shared by more than one brand and model, but only my Cointra Oasis Tech 200 HT has been exercised against this code. Cascade devices, slave valves and auxiliary fields are excluded for now.
+## Current status
 
-## Where I could use some help
+This is an early test integration for **Home Assistant 2026.11 or newer**. It has only been tested against my own installation so far. The repository includes automated tests, but they cannot replace testing on a real heater.
 
-I would love to hear from anyone with a related Cointra, Ferroli, EGEA or rebadged hot-water heat pump who can test read-only monitoring. In particular, please tell me the model, app you use and the **motherboard, display and Wi-Fi firmware versions**, along with which readings behave correctly. Please **do not publish serial numbers, MAC addresses, email addresses, passwords or API tokens** in an issue.
-
-The energy API has been particularly maddening. Swagger describes date-based statistics with fields such as `date`, `requestPeriodType` and `responsePeriodType`, but my Postman experiments returned HTTP 400 for the date formats I tried. If anyone has worked out its exact accepted format or has clean, redacted examples, that would be extremely useful. I'd also welcome a confirmed Modbus register map for this specific family.
-
-You can raise bugs or share test results in [GitHub Issues](https://github.com/misiu-io/ha-cointra-oasis/issues). This is early software, so I would rather know when a value is wrong than quietly display something misleading.
-
-## Versions and testing
-
-This release is **v0.1.2**, a preview for Home Assistant **2026.11 or newer**. It replaces the two-interval polling design with full reads only and corrects false alarm interpretations. The integration's internal domain remains `cointra_oasis`, which keeps existing installations and entity identifiers compatible.
-
-Release numbers are GitHub Releases tagged `v0.1.2`, `v0.1.3`, and so on. The version inside `manifest.json` matches without the leading `v`. Without a published GitHub Release, the Marketplace shows a commit hash instead of a friendly version number.
-
-The repository includes local, no-network tests, which you can run with:
-
-```bash
-python -m unittest discover -s tests -v
-```
-
-These tests simulate API responses and a small part of Home Assistant. They catch response-mapping regressions, but **do not replace real testing on Home Assistant Green or other installations**. GitHub Actions also run the tests and the Marketplace validation checks.
-
-For version-specific details, see [CHANGELOG.md](CHANGELOG.md). The [API notes](API.md) are intended for people interested in continuing the investigation.
+See [CHANGELOG.md](CHANGELOG.md) for changes and [API.md](API.md) for more technical details.
