@@ -1,13 +1,18 @@
 {
   "domain": "cointra_oasis",
   "name": "Cointra Oasis Tech",
-  "version": "0.1.3",
+  "categories": [
+    "climate.heat_pumps_air_conditioning"
+  ],
+  "codeowners": [
+    "@misiu-io"
+  ],
   "config_flow": true,
-  "documentation": "https://github.com/misiu-io/ha-cointra-oasis#readme",
-  "issue_tracker": "https://github.com/misiu-io/ha-cointra-oasis/issues",
-  "codeowners": ["@misiu-io"],
   "dependencies": [],
-  "requirements": [],
+  "documentation": "https://github.com/misiu-io/ha-cointra-oasis#readme",
   "integration_type": "device",
-  "iot_class": "cloud_polling"
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/misiu-io/ha-cointra-oasis/issues",
+  "requirements": [],
+  "version": "0.1.3"
 }
