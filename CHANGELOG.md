@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.2.0 (17 November 2026)
+
+- Prepare the first public 0.2.0 release without changing the existing read-only monitoring behaviour.
+- Add a Spanish README and link it from the English documentation.
+- Classify the integration under both domestic water heating and heat pumps in the Home Assistant integration catalog.
+- Correct the integration manifest ordering and repository metadata so that unit tests, hassfest and Marketplace validation can pass.
+
 ## v0.1.3 (preview, 17 November 2026)
 
 - Rename the displayed integration to **Cointra Oasis Tech** while preserving the internal `cointra_oasis` domain and existing entity identifiers.
