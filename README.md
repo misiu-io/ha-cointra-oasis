@@ -1,95 +1,64 @@
 # Cointra Oasis Tech
 
-An unofficial, read-only Home Assistant integration for Cointra Oasis Tech aerothermal systems for domestic hot water (DHW), using the cloud API behind the Ferroli Home / Four Solid mobile app.
+Read-only monitoring of Cointra Oasis Tech aerothermal domestic hot water (DHW) systems in **Home Assistant**, using the same Ferroli cloud service as the **Ferroli Home / Four Solid** mobile app.
 
-This is a small personal project and is not affiliated, associated, authorised, endorsed by, or in any way officially connected with Cointra or Ferroli.
+This is an unofficial personal project. It is not affiliated, associated, authorised or endorsed by Cointra or Ferroli.
 
-The cloud API is unofficial and may change without notice.
+**What it does:** brings water temperatures, operating modes, setpoints, scheduling status and device diagnostics into Home Assistant. It **does not send control commands** or change the settings of your DHW system.
 
-The integration uses the same email address and password as your Ferroli Home / Four Solid mobile app account. For now, it is strictly read-only: it does not send commands to change the aerothermal system's settings.
+**Requirements:** Home Assistant 2026.11 or newer, plus a working Ferroli Home / Four Solid account with a device already registered. It needs internet access to the cloud service; it is not a local integration.
 
 <!-- ha-marketplace:exclude-start -->
 ## Installation
 
-Requires **Home Assistant 2026.11 or newer**.
-
-1. Open **Settings → Marketplace → Add from link** in Home Assistant.
-2. Enter the [Cointra Oasis Tech GitHub repository](https://github.com/misiu-io/ha-cointra-oasis): `https://github.com/misiu-io/ha-cointra-oasis`.
+1. In Home Assistant, open **Settings → Marketplace → Add from link**.
+2. Add the [Cointra Oasis Tech repository](https://github.com/misiu-io/ha-cointra-oasis): `https://github.com/misiu-io/ha-cointra-oasis`.
 3. Open **Cointra Oasis Tech** in Marketplace and select **Install**.
-4. Go to **Settings → Devices & services → Add Integration** and choose **Cointra Oasis Tech**.
+4. Go to **Settings → Devices & services → Add Integration** and select **Cointra Oasis Tech**.
 
-Enter the email address and password you use in the **Ferroli Home / Four Solid** mobile app. The integration reads the devices registered to your account and lets you select the one to add. If only one device is registered, it is selected automatically. Its name in the mobile app becomes the device name in Home Assistant.
-
-After future integration updates, Home Assistant may ask you to restart to load the new code.
+Marketplace can install this as a custom repository. It is not yet listed in the public Marketplace catalog. An update to an already loaded integration requires a Home Assistant restart.
 <!-- ha-marketplace:exclude-end -->
+
+## Setup
+
+Enter the email address and password used by your **Ferroli Home / Four Solid** mobile app. The integration retrieves the devices registered to your account. Select the device to add; if there is only one, it is selected automatically. Its name in the mobile app is used in Home Assistant.
+
+The integration authenticates with the cloud API and reads the complete device state every **30 minutes** by default. You can change the polling interval through the integration's **Configure** option.
+
+## What you'll see
+
+| Group | Readings |
+| --- | --- |
+| Water and temperature | Water temperature, tank top and bottom temperatures, coil / defrost temperature, external air temperature |
+| Operation | Actual and requested modes, actual and requested setpoints |
+| Scheduling | Scheduling enabled, active slot, slot start and end |
+| Status | Alarm, anti-legionella, antifreeze, photovoltaic, smart grid, solar thermal and silent-mode states |
+| Diagnostics | Device communication time, firmware versions, Wi-Fi MAC address and device data-read status |
+
+All entities are read-only. Some readings may be unavailable if your particular device does not provide them.
+
+## Compatibility and limitations
+
+**Tested:** Cointra Oasis Tech 200 HT, using my own unit.
+
+Cointra is part of the Ferroli Group. The [manufacturer's declaration of conformity](https://www.cointra.es/wp-content/uploads/2023/10/declaracion-conformidad-oasis-tech.pdf) groups the Oasis Tech 200 HT with the **Ferroli EGEA Tech 200 HT** and **Dora Tech 200 HT**. They appear to share a product platform and related Wi-Fi modules, but I have **not tested** those models or their firmware. Compatibility is not guaranteed. Devices using Tuya / Smart Life are not supported.
+
+**No control:** The integration deliberately avoids writes. Different firmware versions may handle commands differently, and there have been reports of control attempts affecting existing schedules.
+
+**No energy statistics yet:** The cloud service appears to expose consumption and production data, but I have not been able to obtain reliable results consistently. I currently monitor electricity use separately with Shelly and other power-monitoring devices.
+
+**Cloud dependency:** The integration relies on an unofficial API that can change without notice. A service outage, authentication change or unsupported response may temporarily make entities unavailable. As with any third-party custom integration, I cannot guarantee it will behave correctly on every Home Assistant or firmware version.
 
 ## Why I made this
 
-In 2024, I started renovating a very old house in Spain. It quickly became clear that practically everything needed work, including the plumbing and electrics. As part of that renovation, I bought a **Cointra Oasis Tech 200 HT**, a high-temperature aerothermal system for domestic hot water.
+While renovating an old house in Spain in 2024, I replaced the plumbing and electrics and installed a **Cointra Oasis Tech 200 HT** high-temperature aerothermal DHW system. Almost everything else in the house is connected to Home Assistant, so it was frustrating not to see its temperatures, mode and other readings there too.
 
-It has always frustrated me that I couldn't see its water temperatures, current operating mode and other parameters in Home Assistant alongside everything else in the house.
+I looked into the controller's Modbus / cascade connection, but couldn't establish a usable register map or confirm a suitable local interface. That led me to investigate the Ferroli cloud API used by the mobile app.
 
-I first investigated the connection on the controller motherboard as a possible route to local monitoring. There are references to Modbus and cascade systems, but I haven't found a reliable register map or confirmed that the available connector provides a conventional RS-485 Modbus interface for direct monitoring. It may be intended for communication between units in a cascade rather than general integration.
+## Bugs, testing and contributions
 
-Cointra belongs to the **Ferroli Group**. Ferroli's own declaration of conformity lists the **Cointra Oasis Tech 200 HT**, **Ferroli EGEA Tech 200 HT** and **Dora Tech 200 HT** together as related models. They appear to share the same product platform, and I believe the Wi-Fi modules are common across several of these systems. That doesn't necessarily mean every model uses identical firmware.
+If you try this with another model or firmware version, I'd be interested to hear what works. Please [open an issue](https://github.com/misiu-io/ha-cointra-oasis/issues/new) with the model, mobile app, motherboard / display / Wi-Fi firmware versions and the readings or errors you see. Don't include account credentials, serial numbers or MAC addresses.
 
-So I turned to the cloud API used by the mobile app. There isn't a separate Cointra API involved here: the integration uses the Ferroli EGEA-family cloud service behind **Ferroli Home / Four Solid**. The same calls may work with other models on that platform, but **I have only tested them on my own Oasis Tech 200 HT**. I can't confirm compatibility with other systems or firmware versions.
+This is still an early project, tested on one physical system. Local automated tests are included, but don't replace real-device testing.
 
-## Supported devices
-
-Currently tested on the **Cointra Oasis Tech 200 HT**. The **Ferroli EGEA Tech 200 HT** and **Dora Tech 200 HT** are closely related models identified in [Ferroli's declaration of conformity](https://www.cointra.es/wp-content/uploads/2023/10/declaracion-conformidad-oasis-tech.pdf), but have **not** been tested with this integration. Other models and firmware versions may also work.
-
-This integration is intended for devices registered through **Ferroli Home / Four Solid**. Older models that connect through Tuya / Smart Life use a different cloud service and are not supported.
-
-## Available entities
-
-The integration currently provides these read-only entities in Home Assistant:
-
-| Type | Entities |
-| --- | --- |
-| Temperature sensors | Water temperature, Tank top temperature, Tank bottom temperature, Coil / defrost temperature, External air temperature, Requested setpoint, Actual setpoint |
-| Operating mode sensors | Requested mode, Actual mode |
-| Scheduling sensors | Schedule slot start, Schedule slot end |
-| Status binary sensors | Scheduling enabled, Schedule slot active, Anti-legionella running, Photovoltaic active, Smart grid active, Solar thermal active, Antifreeze active, Requested silent mode, Actual silent mode, Alarm |
-| Diagnostic sensors | Last device communication, Wi-Fi firmware, Motherboard firmware, Display firmware, Wi-Fi MAC address |
-| Diagnostic binary sensor | Data read from device |
-
-On my device, some unsupported probes return values such as `0` or `-32768`. The integration currently ignores `-32768`; zero readings from unsupported probes still need to be handled more carefully.
-
-## Setup and polling
-
-You need a valid **Ferroli Home / Four Solid** account with your DHW aerothermal system already registered in the mobile app. During setup, the Home Assistant integration asks for your account email address and password. It then reads the devices registered to your account. If more than one device is found, you choose which one to add. If there is only one, it is selected automatically. The device keeps the name registered in the mobile app, which is also used as its name in Home Assistant.
-
-The integration authenticates with the cloud API and makes a full device read every **30 minutes** by default. You can change the polling interval under the integration's **Configure** option.
-
-## API calls used
-
-These are the three API calls used by the integration:
-
-| Purpose | Method and endpoint |
-| --- | --- |
-| Login and authentication | `POST /api/User/login` |
-| Find devices registered to the account | `GET /v1/Device/GetUserDevicesWithSlavePlain` |
-| Read the complete device state | `GET /v1/DeviceCommand/{deviceId}/GetAllLastValuesFromDevice` |
-
-The device discovery call is made during setup. The login and full-state read are used during normal polling. More details on the responses and my API investigation are in [API.md](API.md).
-
-## What I'm not doing yet
-
-**No remote control or writes.** Testing and online research suggest that firmware versions can behave differently, and some attempted control operations can interfere with or disable existing schedules. For now, I'm staying away from anything that changes operating modes, setpoints or scheduling.
-
-**No energy statistics.** The API appears to expose electricity consumption and energy production information, but I haven't been able to make those requests work consistently. Date formatting and data handling have been particularly difficult to pin down, and there is very little documentation. Until I understand the responses properly, I'm leaving energy figures out. I currently use Shelly devices and other power monitors to measure real-time consumption separately.
-
-**No assumptions about other equipment.** I've tested this on one Cointra Oasis Tech 200 HT. I haven't tested cascade configurations, related Ferroli or Dora models, or multiple devices registered under the same account.
-
-## How you can help
-
-I'd appreciate bug reports and test results from anyone using a related system. Please include the model, the mobile app you're using, the motherboard, display and Wi-Fi firmware versions, and which readings work or fail. Please don't include personal account details, serial numbers or MAC addresses.
-
-To report a bug or request an improvement, open a [new GitHub issue](https://github.com/misiu-io/ha-cointra-oasis/issues/new) in the [project repository](https://github.com/misiu-io/ha-cointra-oasis). A free GitHub account is needed to submit an issue. I'd also be interested in a verified register map for local monitoring, or help understanding the energy statistics API.
-
-## Current status
-
-This is an early test integration for **Home Assistant 2026.11 or newer**. It has only been tested against my own installation so far. The repository includes automated tests, but they cannot replace testing on a real DHW aerothermal system.
-
-See [CHANGELOG.md](CHANGELOG.md) for changes and [API.md](API.md) for more technical details.
+For further details, see [the API notes](API.md) and [changelog](CHANGELOG.md).
