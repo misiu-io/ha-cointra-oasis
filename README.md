@@ -25,6 +25,8 @@ Enter the email address and password used by your **Ferroli Home / Four Solid** 
 
 The integration authenticates with the cloud API and reads the complete device state every **30 minutes** by default. You can change the polling interval through the integration's **Configure** option.
 
+Account credentials are stored in Home Assistant's configuration entry for authentication. Protect your Home Assistant configuration files and backups.
+
 ## What you'll see
 
 | Group | Readings |
