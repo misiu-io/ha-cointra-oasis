@@ -1,0 +1,47 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Ferroli Home account",
+        "description": "Use the account associated with your Oasis Tech water heater.",
+        "data": {
+          "username": "Ferroli Home email",
+          "password": "Ferroli Home password"
+        }
+      },
+      "device": {
+        "title": "Choose water heater",
+        "data": {"device_id": "Water heater"}
+      },
+      "reauth_confirm": {
+        "title": "Reconnect Ferroli Home",
+        "description": "The cloud rejected the stored credentials. Enter them again to resume monitoring.",
+        "data": {
+          "username": "Ferroli Home email",
+          "password": "Ferroli Home password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "The cloud rejected those credentials.",
+      "cannot_connect": "Could not contact the Ferroli cloud service.",
+      "rate_limited": "The service is limiting requests. Wait before trying again.",
+      "no_devices": "No matching water heater was found on this account."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Polling intervals",
+        "description": "Full readings replace basic readings when they coincide. Keep intervals conservative because the manufacturer's rate limits are unknown.",
+        "data": {
+          "basic_minutes": "Basic data, minutes",
+          "full_minutes": "Full readings, minutes"
+        }
+      }
+    },
+    "error": {
+      "invalid_intervals": "The full interval must be an exact multiple of the basic interval and not shorter."
+    }
+  }
+}
