@@ -8,6 +8,21 @@ The cloud API is unofficial and may change without notice.
 
 The integration uses the same email address and password as your Ferroli Home / Four Solid mobile app account. For now, it is strictly read-only: it does not send commands to change the aerothermal system's settings.
 
+<!-- ha-marketplace:exclude-start -->
+## Installation
+
+Requires **Home Assistant 2026.11 or newer**.
+
+1. Open **Settings → Marketplace → Add from link** in Home Assistant.
+2. Enter the [Cointra Oasis Tech GitHub repository](https://github.com/misiu-io/ha-cointra-oasis): `https://github.com/misiu-io/ha-cointra-oasis`.
+3. Open **Cointra Oasis Tech** in Marketplace and select **Install**.
+4. Go to **Settings → Devices & services → Add Integration** and choose **Cointra Oasis Tech**.
+
+Enter the email address and password you use in the **Ferroli Home / Four Solid** mobile app. The integration reads the devices registered to your account and lets you select the one to add. If only one device is registered, it is selected automatically. Its name in the mobile app becomes the device name in Home Assistant.
+
+After future integration updates, Home Assistant may ask you to restart to load the new code.
+<!-- ha-marketplace:exclude-end -->
+
 ## Why I made this
 
 In 2024, I started renovating a very old house in Spain. It quickly became clear that practically everything needed work, including the plumbing and electrics. As part of that renovation, I bought a **Cointra Oasis Tech 200 HT**, a high-temperature aerothermal system for domestic hot water.
@@ -71,7 +86,7 @@ The device discovery call is made during setup. The login and full-state read ar
 
 I'd appreciate bug reports and test results from anyone using a related system. Please include the model, the mobile app you're using, the motherboard, display and Wi-Fi firmware versions, and which readings work or fail. Please don't include personal account details, serial numbers or MAC addresses.
 
-You can report issues at [GitHub Issues](https://github.com/misiu-io/ha-cointra-oasis/issues). I'd also be interested in a verified register map for local monitoring, or help understanding the energy statistics API.
+To report a bug or request an improvement, open a [new GitHub issue](https://github.com/misiu-io/ha-cointra-oasis/issues/new) in the [project repository](https://github.com/misiu-io/ha-cointra-oasis). A free GitHub account is needed to submit an issue. I'd also be interested in a verified register map for local monitoring, or help understanding the energy statistics API.
 
 ## Current status
 
