@@ -1,7 +1,7 @@
 {
   "domain": "cointra_oasis",
-  "name": "HA Cointra Oasis Tech (Unofficial)",
-  "version": "0.1.2",
+  "name": "Cointra Oasis Tech",
+  "version": "0.1.3",
   "config_flow": true,
   "documentation": "https://github.com/misiu-io/ha-cointra-oasis#readme",
   "issue_tracker": "https://github.com/misiu-io/ha-cointra-oasis/issues",

@@ -163,7 +163,7 @@ class CointraOasisCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         info: dict[str, Any] = {
             "identifiers": {(DOMAIN, self.device_id)},
             "name": self.device_name,
-            "manufacturer": "Cointra",
+            "manufacturer": "Cointra / Ferroli Group",
             "model": self.model,
         }
         serial = data.get("serialNumber") or self.serial_number

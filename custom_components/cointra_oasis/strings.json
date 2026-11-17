@@ -2,16 +2,17 @@
   "config": {
     "step": {
       "user": {
-        "title": "Ferroli Home account",
-        "description": "Use the account associated with your Oasis Tech water heater.",
+        "title": "Connect to Ferroli Home",
+        "description": "Sign in with the same email address and password you use for the Ferroli Home / Four Solid mobile app. The integration will retrieve the devices registered to your account. If more than one is found, you can choose which to monitor. This unofficial integration is read-only and does not change your system's settings or schedules.",
         "data": {
-          "username": "Ferroli Home email",
-          "password": "Ferroli Home password"
+          "username": "Email address",
+          "password": "Password"
         }
       },
       "device": {
-        "title": "Choose water heater",
-        "data": {"device_id": "Water heater"}
+        "title": "Select your device",
+        "description": "Select the device to monitor in Home Assistant. Its existing name from Ferroli Home will be retained.",
+        "data": {"device_id": "Device"}
       },
       "reauth_confirm": {
         "title": "Reconnect Ferroli Home",
@@ -26,16 +27,16 @@
       "invalid_auth": "The cloud rejected those credentials.",
       "cannot_connect": "Could not contact the Ferroli cloud service.",
       "rate_limited": "The service is limiting requests. Wait before trying again.",
-      "no_devices": "No matching water heater was found on this account."
+      "no_devices": "No devices were found on this account. Check that your system is registered in the Ferroli Home / Four Solid app."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Cloud polling",
-        "description": "Fetch the complete read-only device response at this interval. The manufacturer's rate limits are not documented.",
+        "title": "Update interval",
+        "description": "Choose how often to retrieve the complete set of readings from the Ferroli cloud. The default is every 30 minutes.",
         "data": {
-          "poll_minutes": "Full data polling, minutes"
+          "poll_minutes": "Update interval (minutes)"
         }
       }
     }

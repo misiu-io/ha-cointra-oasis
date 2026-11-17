@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.1.3 (preview, 17 November 2026)
+
+- Rename the displayed integration to **Cointra Oasis Tech** while preserving the internal `cointra_oasis` domain and existing entity identifiers.
+- Restore the device manufacturer information as **Cointra / Ferroli Group**.
+- Improve the English setup, device-selection and update-interval screens.
+- Replace the dark integration icon with artwork based on the Oasis Tech 200 HT on a transparent background.
+- Rewrite the README with the project background, tested device, supported entities, Ferroli cloud API and compatibility limitations.
+
+This is a development preview until tested on a running Home Assistant installation.
+
 ## v0.1.2 (17 November 2026)
 
 - Use only the verified full cloud snapshot endpoint, every 30 minutes by default.
