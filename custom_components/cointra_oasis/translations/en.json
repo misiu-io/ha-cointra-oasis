@@ -32,16 +32,12 @@
   "options": {
     "step": {
       "init": {
-        "title": "Polling intervals",
-        "description": "Full readings replace basic readings when they coincide. Keep intervals conservative because the manufacturer's rate limits are unknown.",
+        "title": "Cloud polling",
+        "description": "Fetch the complete read-only device response at this interval. The manufacturer's rate limits are not documented.",
         "data": {
-          "basic_minutes": "Basic data, minutes",
-          "full_minutes": "Full readings, minutes"
+          "poll_minutes": "Full data polling, minutes"
         }
       }
-    },
-    "error": {
-      "invalid_intervals": "The full interval must be an exact multiple of the basic interval and not shorter."
     }
   }
 }

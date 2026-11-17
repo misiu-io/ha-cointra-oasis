@@ -1,4 +1,4 @@
-"""Ferroli cloud requests, conservative polling and rate-limit handling."""
+"""Read-only Ferroli cloud requests with one complete poll per interval."""
 
 from __future__ import annotations
 
@@ -19,8 +19,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 DOMAIN = "cointra_oasis"
 AUTH_URL = "https://usermanagerservice4s.azurewebsites.net/api/User/login"
 API_BASE = "https://foursolid0015-egea.azurewebsites.net"
-DEFAULT_BASIC_MINUTES = 30
-DEFAULT_FULL_MINUTES = 60
+DEFAULT_POLL_MINUTES = 30
 HTTP_TIMEOUT_SECONDS = 20
 
 _LOGGER = logging.getLogger(__name__)
@@ -40,10 +39,6 @@ class CointraRateLimited(CointraApiError):
     def __init__(self, retry_after_seconds: int):
         super().__init__("Ferroli cloud rate limit reached")
         self.retry_after_seconds = retry_after_seconds
-
-
-class CointraEndpointMissing(CointraApiError):
-    """One of the cloud's read endpoints is not available."""
 
 
 def _retry_after(headers: Any) -> int:
@@ -95,7 +90,7 @@ class CointraCloudApi:
                 ):
                     raise CointraAuthError("Ferroli cloud rejected authentication")
                 if response.status == 404:
-                    raise CointraEndpointMissing("Read endpoint was not found")
+                    raise CointraApiError("Read endpoint was not found")
                 if response.status >= 400:
                     raise CointraApiError(f"Ferroli cloud returned HTTP {response.status}")
                 try:
@@ -126,15 +121,6 @@ class CointraCloudApi:
             raise CointraApiError("Invalid device-discovery response")
         return [device for device in result if isinstance(device, dict)]
 
-    async def read_basic(self, token: str, device_id: str) -> dict[str, Any]:
-        result = await self._request(
-            "GET", f"{API_BASE}/v1/Device/{device_id}/GetDeviceLastValues",
-            token=token,
-        )
-        if not isinstance(result, dict):
-            raise CointraApiError("Invalid basic-values response")
-        return result
-
     async def read_full(self, token: str, device_id: str) -> dict[str, Any]:
         result = await self._request(
             "GET", f"{API_BASE}/v1/DeviceCommand/{device_id}/GetAllLastValuesFromDevice",
@@ -146,7 +132,7 @@ class CointraCloudApi:
 
 
 class CointraOasisCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Poll basic and full read endpoints without overlapping requests."""
+    """Poll only the verified full read endpoint."""
 
     def __init__(
         self, hass: HomeAssistant, entry: ConfigEntry, api: CointraCloudApi
@@ -157,21 +143,16 @@ class CointraOasisCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.model = entry.data.get("model") or "Oasis Tech"
         self.serial_number = entry.data.get("serial_number")
         self.mac_address = entry.data.get("mac_address")
-        self.basic_minutes = int(
-            entry.options.get("basic_minutes", DEFAULT_BASIC_MINUTES)
-        )
-        self.full_minutes = int(
-            entry.options.get("full_minutes", DEFAULT_FULL_MINUTES)
-        )
-        self._last_full: datetime | None = None
+        # Older entries may still have basic_minutes/full_minutes options.
+        # Those options are intentionally ignored after the full-only update.
+        self.poll_minutes = int(entry.options.get("poll_minutes", DEFAULT_POLL_MINUTES))
         self._pause_until: datetime | None = None
         self._failures = 0
-        self._basic_supported = True
         super().__init__(
             hass,
             _LOGGER,
             name=f"{DOMAIN}_{self.device_id}",
-            update_interval=timedelta(minutes=self.basic_minutes),
+            update_interval=timedelta(minutes=self.poll_minutes),
             config_entry=entry,
         )
 
@@ -179,57 +160,32 @@ class CointraOasisCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def device_info(self) -> dict[str, Any]:
         """One HA device containing all sensors and the actual Wi-Fi MAC."""
         data = self.data or {}
-        model = self.model
-        if "oasis" not in model.lower():
-            model = f"Oasis Tech {model}"
         info: dict[str, Any] = {
             "identifiers": {(DOMAIN, self.device_id)},
             "name": self.device_name,
-            "manufacturer": "Cointra / Ferroli",
-            "model": model,
+            "manufacturer": "Cointra",
+            "model": self.model,
         }
         serial = data.get("serialNumber") or self.serial_number
         mac = data.get("macAddressWifiModule") or self.mac_address
-        firmware = data.get("firmwareVersionMotherBoard")
         if serial:
             info["serial_number"] = serial
         if mac:
             info["connections"] = {(CONNECTION_NETWORK_MAC, mac)}
-        if firmware:
-            info["sw_version"] = str(firmware)
         return info
 
     async def _async_update_data(self) -> dict[str, Any]:
         now = datetime.now(timezone.utc)
-        full_due = (
-            self._last_full is None
-            or now - self._last_full >= timedelta(minutes=self.full_minutes) - timedelta(seconds=10)
-        )
-
-        if not self._basic_supported and not full_due and self.data:
-            # Unknown basic endpoint: avoid extra device queries; wait for full.
-            return self.data
-
         if self._pause_until is not None and now < self._pause_until:
             raise UpdateFailed("Ferroli cloud polling is temporarily paused")
 
         try:
-            # Exactly one login and one data GET per normal cycle.
+            # A fresh short-lived token and one complete read on every cycle.
             token = await self.api.login()
-            if full_due:
-                values = await self.api.read_full(token, self.device_id)
-            else:
-                values = await self.api.read_basic(token, self.device_id)
+            values = await self.api.read_full(token, self.device_id)
         except CointraAuthError as exc:
             # Do not try the same password again on a timer after an auth error.
             raise ConfigEntryAuthFailed("Cointra credentials need attention") from exc
-        except CointraEndpointMissing as exc:
-            if not full_due:
-                self._basic_supported = False
-                _LOGGER.warning(
-                    "Basic read endpoint not available; using hourly full reads only"
-                )
-            raise UpdateFailed(str(exc)) from exc
         except CointraRateLimited as exc:
             seconds = max(1800, min(exc.retry_after_seconds, 86400))
             self._pause_until = now + timedelta(seconds=seconds)
@@ -243,14 +199,16 @@ class CointraOasisCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         if values.get("deviceId") not in (None, self.device_id):
             raise UpdateFailed("Cloud response belongs to an unexpected device")
-        if "h2OTemperature" not in values:
-            raise UpdateFailed("Cloud response lacks the expected water-temperature field")
+        water_temperature = values.get("h2OTemperature")
+        if (
+            isinstance(water_temperature, bool)
+            or not isinstance(water_temperature, (int, float))
+            or water_temperature == -32768
+        ):
+            raise UpdateFailed("Cloud response lacks a valid water temperature")
 
         self._failures = 0
         self._pause_until = None
-        if full_due:
-            self._last_full = now
-            return values
-
-        # Basic reads omit detailed probe fields. Preserve their last readings.
-        return {**(self.data or {}), **values}
+        # The full response is authoritative. Never synthesize absent states or
+        # mix fields from the unverified, partial read endpoint.
+        return values

@@ -62,7 +62,12 @@ class CointraOasisBinarySensor(CoordinatorEntity, BinarySensorEntity):
         elif key == "alarm":
             if "alarm" not in values:
                 return None
-            return values["alarm"] is not None
+            alarm = values["alarm"]
+            if isinstance(alarm, str):
+                return alarm.strip().lower() not in ("", "0", "false", "none", "null", "ok")
+            # The verified full response uses null for no alarm. Some API
+            # responses use false, zero, or an empty collection instead.
+            return bool(alarm)
         else:
             value = values.get(key)
         return value if isinstance(value, bool) else None

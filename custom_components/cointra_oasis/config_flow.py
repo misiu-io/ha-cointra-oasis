@@ -14,8 +14,7 @@ from .coordinator import (
     CointraAuthError,
     CointraCloudApi,
     CointraRateLimited,
-    DEFAULT_BASIC_MINUTES,
-    DEFAULT_FULL_MINUTES,
+    DEFAULT_POLL_MINUTES,
     DOMAIN,
 )
 
@@ -141,30 +140,19 @@ class CointraOasisConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class CointraOasisOptionsFlow(config_entries.OptionsFlow):
-    """Allow conservative changes without modifying credentials."""
+    """Configure how often the complete, read-only response is fetched."""
 
     async def async_step_init(self, user_input=None):
-        errors = {}
         if user_input is not None:
-            basic = int(user_input["basic_minutes"])
-            full = int(user_input["full_minutes"])
-            if full < basic or full % basic:
-                errors["base"] = "invalid_intervals"
-            else:
-                return self.async_create_entry(title="", data=user_input)
+            return self.async_create_entry(title="", data=user_input)
         options = self.config_entry.options
         return self.async_show_form(
             step_id="init",
-            errors=errors,
             data_schema=vol.Schema(
                 {
                     vol.Required(
-                        "basic_minutes",
-                        default=options.get("basic_minutes", DEFAULT_BASIC_MINUTES),
-                    ): vol.In([15, 30, 60, 120]),
-                    vol.Required(
-                        "full_minutes",
-                        default=options.get("full_minutes", DEFAULT_FULL_MINUTES),
+                        "poll_minutes",
+                        default=options.get("poll_minutes", DEFAULT_POLL_MINUTES),
                     ): vol.In([30, 60, 120, 180, 240, 360]),
                 }
             ),

@@ -112,6 +112,26 @@ class EntityTests(unittest.TestCase):
         self.assertFalse(self.binary("isPhotovoltaicActive").is_on)
         self.assertFalse(self.binary("alarm").is_on)
 
+    def test_alarm_false_positives_are_not_problems(self):
+        for value in (None, False, 0, "", "0", "false", [], {}):
+            with self.subTest(alarm=value):
+                self.coordinator.data["alarm"] = value
+                self.assertFalse(self.binary("alarm").is_on)
+
+    def test_real_alarm_and_absent_alarm_are_distinct(self):
+        for value in (True, 2, "overheat", {"code": 2}):
+            with self.subTest(alarm=value):
+                self.coordinator.data["alarm"] = value
+                self.assertTrue(self.binary("alarm").is_on)
+        self.coordinator.data.pop("alarm")
+        self.assertIsNone(self.binary("alarm").is_on)
+
+    def test_absent_schedule_is_not_false(self):
+        self.coordinator.data.pop("isSchedulingEnabled")
+        self.coordinator.data.pop("currentSchedulingSlot")
+        self.assertIsNone(self.binary("isSchedulingEnabled").is_on)
+        self.assertIsNone(self.binary("slotRunning").is_on)
+
 
 if __name__ == "__main__":
     unittest.main()

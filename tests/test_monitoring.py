@@ -9,8 +9,6 @@ startup/config-flow test is still required on an HA installation.
 
 from __future__ import annotations
 
-import asyncio
-from datetime import datetime, timedelta, timezone
 import importlib.util
 from pathlib import Path
 import sys
@@ -104,12 +102,6 @@ class ApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(session.calls[1][1].endswith("/heater/GetAllLastValuesFromDevice"))
         self.assertEqual(session.calls[1][2]["headers"]["Authorization"], "Bearer a.jwt.token")
 
-    async def test_basic_read_endpoint(self):
-        session = FakeSession([FakeResponse(payload={"h2OTemperature": 55})])
-        api = api_module.CointraCloudApi(session, "a", "b")
-        self.assertEqual((await api.read_basic("token", "heater"))["h2OTemperature"], 55)
-        self.assertTrue(session.calls[0][1].endswith("/heater/GetDeviceLastValues"))
-
     async def test_login_rejection_does_not_retry(self):
         session = FakeSession([FakeResponse(status=401)])
         api = api_module.CointraCloudApi(session, "a", "b")
@@ -145,10 +137,6 @@ class FakeApi:
             "isPhotovoltaicActive": False,
         }
 
-    async def read_basic(self, token, device_id):
-        self.calls.append("basic")
-        return {"deviceId": device_id, "h2OTemperature": 53}
-
 
 class CoordinatorTests(unittest.IsolatedAsyncioTestCase):
     def make_coordinator(self, api=None):
@@ -158,23 +146,50 @@ class CoordinatorTests(unittest.IsolatedAsyncioTestCase):
         )
         return api_module.CointraOasisCoordinator(object(), entry, api or FakeApi())
 
-    async def test_full_then_basic_preserves_probes(self):
+    async def test_every_poll_uses_complete_endpoint(self):
         api = FakeApi()
         coordinator = self.make_coordinator(api)
-        full = await coordinator._async_update_data()
-        coordinator.data = full
-        basic = await coordinator._async_update_data()
-        self.assertEqual(api.calls, ["login", "full", "login", "basic"])
-        self.assertEqual(basic["h2OTemperature"], 53)
-        self.assertEqual(basic["tankUpperProbeTemperature"], 55)
-
-    async def test_full_replaces_basic_after_hour(self):
-        api = FakeApi()
-        coordinator = self.make_coordinator(api)
-        coordinator.data = await coordinator._async_update_data()
-        coordinator._last_full = datetime.now(timezone.utc) - timedelta(minutes=61)
         await coordinator._async_update_data()
-        self.assertEqual(api.calls[-2:], ["login", "full"])
+        await coordinator._async_update_data()
+        self.assertEqual(api.calls, ["login", "full", "login", "full"])
+
+    async def test_full_response_never_merges_stale_fields(self):
+        api = FakeApi()
+        coordinator = self.make_coordinator(api)
+        coordinator.data = {
+            "deviceId": "heater", "h2OTemperature": 53,
+            "isSchedulingEnabled": False, "firmwareVersionDisplay": None,
+        }
+        result = await coordinator._async_update_data()
+        self.assertNotIn("isSchedulingEnabled", result)
+        self.assertNotIn("firmwareVersionDisplay", result)
+        self.assertEqual(result["tankUpperProbeTemperature"], 55)
+
+    async def test_old_polling_options_are_ignored(self):
+        api = FakeApi()
+        entry = SimpleNamespace(
+            data={"device_id": "heater", "device_name": "L&V ACS", "model": "200 HT"},
+            options={"basic_minutes": 60, "full_minutes": 120},
+        )
+        coordinator = api_module.CointraOasisCoordinator(object(), entry, api)
+        self.assertEqual(coordinator.poll_minutes, 30)
+        await coordinator._async_update_data()
+        self.assertEqual(api.calls, ["login", "full"])
+
+    async def test_reject_missing_or_invalid_temperature(self):
+        api = FakeApi()
+        coordinator = self.make_coordinator(api)
+        async def incomplete_read(token, device_id):
+            return {"deviceId": device_id, "isSchedulingEnabled": False}
+        api.read_full = incomplete_read
+        with self.assertRaises(api_module.UpdateFailed):
+            await coordinator._async_update_data()
+
+        async def null_read(token, device_id):
+            return {"deviceId": device_id, "h2OTemperature": None}
+        api.read_full = null_read
+        with self.assertRaises(api_module.UpdateFailed):
+            await coordinator._async_update_data()
 
     async def test_rate_limit_pauses_without_second_login(self):
         api = FakeApi()
