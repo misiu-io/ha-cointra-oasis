@@ -2,7 +2,8 @@
   "domain": "cointra_oasis",
   "name": "Cointra Oasis Tech",
   "categories": [
-    "climate.water_heaters"
+    "climate.water_heaters",
+    "climate.heat_pumps_air_conditioning"
   ],
   "codeowners": [
     "@misiu-io"
